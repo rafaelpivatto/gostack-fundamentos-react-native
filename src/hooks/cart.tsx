@@ -27,7 +27,6 @@ const CartContext = createContext<CartContext | null>(null);
 
 const CartProvider: React.FC = ({ children }) => {
   const [products, setProducts] = useState<Product[]>([]);
-  console.log('========= products', products);
 
   useEffect(() => {
     async function loadProducts(): Promise<void> {
@@ -45,17 +44,23 @@ const CartProvider: React.FC = ({ children }) => {
   const increment = useCallback(
     async id => {
       if (!id) return;
-      const productIncremented = products.find(prod => prod.id === id);
-      const otherProducts = products.filter(prod => prod.id !== id);
-      if (productIncremented) {
-        productIncremented.quantity += 1;
 
-        setProducts([...otherProducts, productIncremented]);
-        await AsyncStorage.setItem(
-          '@GoMarketPlace:products',
-          JSON.stringify(products),
-        );
-      }
+      setProducts([
+        ...products.map(prod => {
+          if (prod.id === id) {
+            return {
+              ...prod,
+              quantity: prod.quantity + 1,
+            };
+          }
+          return prod;
+        }),
+      ]);
+
+      await AsyncStorage.setItem(
+        '@GoMarketPlace:products',
+        JSON.stringify(products),
+      );
     },
     [products],
   );
@@ -63,20 +68,25 @@ const CartProvider: React.FC = ({ children }) => {
   const decrement = useCallback(
     async id => {
       if (!id) return;
-      const productIncremented = products.find(prod => prod.id === id);
-      const otherProducts = products.filter(prod => prod.id !== id);
-      if (productIncremented) {
-        productIncremented.quantity -= 1;
-        if (productIncremented.quantity > 0) {
-          setProducts([...otherProducts, productIncremented]);
-        } else {
-          setProducts([...otherProducts]);
-        }
-        await AsyncStorage.setItem(
-          '@GoMarketPlace:products',
-          JSON.stringify(products),
-        );
-      }
+
+      const productsWithDecremented = products
+        .map(prod => {
+          if (prod.id === id) {
+            return {
+              ...prod,
+              quantity: prod.quantity - 1,
+            };
+          }
+          return prod;
+        })
+        .filter(prod => prod.quantity > 0);
+
+      setProducts([...productsWithDecremented]);
+
+      await AsyncStorage.setItem(
+        '@GoMarketPlace:products',
+        JSON.stringify(products),
+      );
     },
     [products],
   );
